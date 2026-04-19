@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: costlens
+      POSTGRES_USER: costlens
+      POSTGRES_PASSWORD: costlens
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U costlens"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ─────────────────────────────────────────
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://costlens:costlens@db:5432/costlens
+      DATABASE_URL_SYNC: postgresql://costlens:costlens@db:5432/costlens
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: development
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ── Seed (one-shot) ────────────────────────────────────────
+  seed:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+asyncpg://costlens:costlens@db:5432/costlens
+      DATABASE_URL_SYNC: postgresql://costlens:costlens@db:5432/costlens
+    depends_on:
+      db:
+        condition: service_healthy
+    command: python -m app.seed
+    profiles:
+      - seed
+
+volumes:
+  pgdata:
