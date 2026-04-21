@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import DashboardLayout from './components/DashboardLayout';
 
 // Pages
@@ -12,6 +13,8 @@ import EndpointsPage from './pages/EndpointsPage';
 import AlertsPage from './pages/AlertsPage';
 import InsightsPage from './pages/InsightsPage';
 import SettingsPage from './pages/SettingsPage';
+import BillingPage from './pages/BillingPage';
+import AdminPage from './pages/AdminPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
@@ -36,7 +39,9 @@ export default function App() {
           <Route path="endpoints" element={<EndpointsPage />} />
           <Route path="alerts" element={<AlertsPage />} />
           <Route path="insights" element={<InsightsPage />} />
+          <Route path="billing" element={<BillingPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
         </Route>
 
         {/* Fallback */}

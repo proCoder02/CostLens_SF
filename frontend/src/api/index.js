@@ -5,3 +5,5 @@ export { usageAPI } from './usage';
 export { alertsAPI } from './alerts';
 export { insightsAPI } from './insights';
 export { settingsAPI } from './settings';
+export { adminAPI } from './admin';
+export { billingAPI } from './billing';

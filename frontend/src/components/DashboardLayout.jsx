@@ -4,16 +4,19 @@ import { useAuth } from '../context/AuthContext';
 import { alertsAPI } from '../api';
 import {
   LayoutDashboard, Waypoints, Bell, Sparkles, Settings,
-  LogOut, Menu, X, Zap, ChevronRight,
+  LogOut, Menu, X, Zap, ChevronRight, CreditCard, Shield,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { path: '/app',          label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { path: '/app',           label: 'Dashboard', icon: LayoutDashboard, end: true },
   { path: '/app/endpoints', label: 'Endpoints', icon: Waypoints },
   { path: '/app/alerts',    label: 'Alerts',    icon: Bell },
   { path: '/app/insights',  label: 'Insights',  icon: Sparkles },
+  { path: '/app/billing',   label: 'Billing',   icon: CreditCard },
   { path: '/app/settings',  label: 'Settings',  icon: Settings },
 ];
+
+const ADMIN_NAV = { path: '/app/admin', label: 'Admin', icon: Shield, adminOnly: true };
 
 const PLAN_LABELS = {
   free: 'Free',
@@ -89,6 +92,27 @@ export default function DashboardLayout() {
               )}
             </NavLink>
           ))}
+
+          {/* Admin nav — only visible to admin users */}
+          {user?.is_admin && (
+            <>
+              <div className="border-t border-white/[0.06] my-2" />
+              <NavLink
+                to={ADMIN_NAV.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150
+                  ${isActive
+                    ? 'bg-accent-amber/15 text-accent-amber'
+                    : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
+                  }`
+                }
+              >
+                <ADMIN_NAV.icon size={17} className="flex-shrink-0" />
+                <span>{ADMIN_NAV.label}</span>
+                <span className="ml-auto text-[9px] font-mono text-accent-amber/50 uppercase tracking-wider">owner</span>
+              </NavLink>
+            </>
+          )}
         </nav>
 
         {/* Plan badge */}

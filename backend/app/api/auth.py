@@ -15,6 +15,7 @@ from app.schemas import UserCreate, UserOut, TokenResponse
 from app.services.user_service import (
     create_user, authenticate_user, generate_token, get_user_by_email,
 )
+from app.services.admin_service import get_saas_config
 from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -22,6 +23,26 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
 async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
+    # ── SaaSConfig checks ─────────────────────────────────────────
+    config = await get_saas_config(db)
+
+    if not config.registration_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="New registrations are currently disabled. Please contact support.",
+        )
+
+    if config.allowed_email_domains:
+        allowed = [d.strip().lower() for d in config.allowed_email_domains.split(",") if d.strip()]
+        if allowed:
+            domain = payload.email.split("@")[-1].lower()
+            if domain not in allowed:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Registrations are restricted to approved email domains.",
+                )
+
+    # ── Duplicate check ───────────────────────────────────────────
     existing = await get_user_by_email(db, payload.email)
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")

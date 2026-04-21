@@ -9,13 +9,16 @@ Run with:
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import select
 
 from app.core.config import settings
-from app.db.session import init_db
+from app.db.session import init_db, async_session_factory
 from app.api import all_routers
 from app.scheduler import start_scheduler, stop_scheduler
+from app.models import SaaSConfig
 
 # ── Logging ───────────────────────────────────────────────────────
 logging.basicConfig(
@@ -32,6 +35,13 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown logic."""
     logger.info("Starting CostLens API server")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
+
+    # Warn if SECRET_KEY is still the insecure default
+    if settings.SECRET_KEY == "change-me-in-production":
+        if settings.ENVIRONMENT == "production":
+            raise RuntimeError("SECRET_KEY must be changed before deploying to production!")
+        else:
+            logger.warning("⚠️  SECRET_KEY is set to the default insecure value. Change it before deploying!")
 
     # Create tables (dev only – use Alembic migrations in prod)
     if settings.ENVIRONMENT == "development":
@@ -70,6 +80,40 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Maintenance Mode Middleware ────────────────────────────────────
+@app.middleware("http")
+async def maintenance_mode_middleware(request: Request, call_next):
+    """
+    When maintenance_mode=True in SaaSConfig, return 503 for all routes
+    except /health and /api/v1/auth/* (so admins can still log in).
+    """
+    exempt = (
+        request.url.path == "/health"
+        or request.url.path.startswith("/api/v1/auth")
+        or request.url.path.startswith("/docs")
+        or request.url.path.startswith("/redoc")
+    )
+    if not exempt:
+        try:
+            async with async_session_factory() as db:
+                result = await db.execute(select(SaaSConfig).where(SaaSConfig.id == 1))
+                config = result.scalar_one_or_none()
+                if config and config.maintenance_mode:
+                    # Allow admins through by checking Authorization header
+                    # (full user lookup skipped here for performance — admins use /auth endpoints)
+                    return JSONResponse(
+                        status_code=503,
+                        content={
+                            "detail": config.maintenance_message
+                            or "We are currently undergoing maintenance. Please check back soon."
+                        },
+                    )
+        except Exception:
+            pass  # Don't block requests if DB check fails
+
+    return await call_next(request)
 
 # ── Routes ────────────────────────────────────────────────────────
 API_PREFIX = "/api/v1"
