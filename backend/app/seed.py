@@ -21,7 +21,7 @@ from app.core.security import hash_password
 # ── Configuration ─────────────────────────────────────────────────
 
 DEMO_USER = {
-    "email": "demoo@costlens.io",
+    "email": "demooo@costlens.io",
     "password": "demodemo123",
     "full_name": "Alex Chen",
     "plan": "startup",

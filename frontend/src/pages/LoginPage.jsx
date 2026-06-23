@@ -150,7 +150,7 @@ export default function LoginPage() {
           {/* Demo credentials */}
           <div className="mt-6 p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center">
             <p className="text-[10px] font-mono text-white/25 uppercase tracking-wider mb-1.5">Demo Account</p>
-            <p className="text-xs text-white/40 font-mono">demoo@costlens.io / demodemo123</p>
+            <p className="text-xs text-white/40 font-mono">demooo@costlens.io / demodemo123</p>
           </div>
         </div>
       </div>
